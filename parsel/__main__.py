@@ -8,7 +8,7 @@ import sys
 
 import six
 
-from . import Selector, __version__
+from parsel import Selector
 
 
 def main(argv=None, progname=None):
@@ -17,6 +17,8 @@ def main(argv=None, progname=None):
                         help="A CSSexpression, or a XPath expression if --xpath is given.")
     parser.add_argument('file', metavar='FILE', nargs='?',
                         help="If missing, it reads the HTML content from the standard input.")
+    parser.add_argument('--base-url',
+                        help="Base URL for links. If given, all links are converted to absolute.")
     parser.add_argument('--xpath', action='store_true',
                         help="Given expression is a XPath expression.")
     parser.add_argument('--re', metavar='PATTERN',
@@ -25,7 +27,6 @@ def main(argv=None, progname=None):
                         help="Input encoding. Default: utf-8.")
     parser.add_argument('--repr', action='store_true',
                         help="Output result object representation instead of as text.")
-    parser.add_argument('-v', '--version', action='version', version=__version__)
 
     args = parser.parse_args(argv)
 
@@ -40,7 +41,11 @@ def main(argv=None, progname=None):
         except UnicodeDecodeError:
             parser.error("Failed to decode input using encoding: %s" % args.encoding)
 
-    sel = Selector(text=text)
+    if args.base_url:
+        sel = Selector(text=text, type='html_html', base_url=args.base_url)
+        sel.root.make_links_absolute(handle_failures='ignore')
+    else:
+        sel = Selector(text=text)
 
     if args.xpath:
         result = sel.xpath(args.expr)
